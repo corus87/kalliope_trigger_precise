@@ -21,8 +21,8 @@ rm precise-engine_0.3.0_armv7l.tar.gz
 
 | parameter    | required | type    | default | choices         | comment                                                                                          |
 |--------------|----------|---------|---------|-----------------|--------------------------------------------------------------------------------------------------|
-| pb_file      | TRUE     | string  |         |                 | Path to the precise wake word.                                                                   |
-| sensitivity  | FALSE    | string  | 0.5     | between 0 and 1 | Increasing the sensitivity value lead to better detection rate, but also higher false alarm rate.|
+| pb_file      | Yes     | string  |         |                 | Path to the precise wake word.                                                                   |
+| sensitivity  | No      | string  | 0.5     | between 0 and 1 | Increasing the sensitivity value lead to better detection rate, but also higher false alarm rate.|
 
 ## Example settings
 
@@ -39,7 +39,7 @@ triggers:
 
 ## Available Precise wake words
 
-[Here](https://github.com/MycroftAI/precise-data/tree/models) and [here](https://github.com/MycroftAI/precise-community-data) you can find some available wake words. 
+There are some available wake words [here](https://github.com/MycroftAI/precise-data/tree/models) and [here](https://github.com/MycroftAI/precise-community-data) . 
 You need the wake_word.pb and wake_word.pb.params file, both need to be in the same directory. 
 
 ## Create your own wake word
