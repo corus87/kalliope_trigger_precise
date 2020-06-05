@@ -1,0 +1,11 @@
+---
+- name: precise-runner
+  hosts: localhost
+  gather_facts: no
+  connection: local
+  become: true
+  tasks:
+    - name: "precise-runner"
+      pip:
+        name: precise-runner
+        executable: pip3

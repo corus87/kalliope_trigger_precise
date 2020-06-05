@@ -1,0 +1,9 @@
+---
+  name: "Precise"
+  type: "trigger"
+  author: "Kalliope project team"
+  kalliope_supported_version:
+    - 0.6
+  tags:
+    - "trigger"
+    - "precise"
