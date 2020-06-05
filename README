@@ -10,7 +10,7 @@ To use precise you need to install precise-engine.
 
 For installation on the raspberry follow these instructions:
 
-```
+```bash
 cd your_starter_kit/resources/trigger/precise
 wget https://github.com/MycroftAI/mycroft-precise/releases/download/v0.3.0/precise-engine_0.3.0_armv7l.tar.gz
 tar -xvzf precise-engine_0.3.0_armv7l.tar.gz
