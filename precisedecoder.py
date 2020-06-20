@@ -9,7 +9,6 @@ from threading import Thread
 
 from kalliope import Utils
 from kalliope.core.HookManager import HookManager
-from kalliope.stt.Utils import SpeechRecorder
 from kalliope.core.ConfigurationManager import SettingLoader
 
 from precise_runner import PreciseRunner, ReadWriteStream, PreciseEngine
@@ -95,8 +94,6 @@ class HotwordDetector(Thread):
                     message = "[Precise] Keyword detected"
                     Utils.print_info(message)
                     logger.debug(message)
-                    SR = SpeechRecorder()                 # We start the SpeechRecorder here to start recording as soon as possible
-                    SR.start()
                     self.detected_callback()
 
             time.sleep(0.1)
