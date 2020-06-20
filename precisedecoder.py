@@ -8,7 +8,6 @@ import sys
 from threading import Thread
 
 from kalliope import Utils
-from kalliope.core.HookManager import HookManager
 from kalliope.core.ConfigurationManager import SettingLoader
 
 from precise_runner import PreciseRunner, ReadWriteStream, PreciseEngine
