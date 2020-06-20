@@ -13,7 +13,6 @@ from kalliope.core.ConfigurationManager import SettingLoader
 
 from precise_runner import PreciseRunner, ReadWriteStream, PreciseEngine
 
-
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 logging.basicConfig()
@@ -39,17 +38,14 @@ class HotwordDetector(Thread):
     def __init__(self,
                  keyword=None,
                  sensitivity=None,
-                 detected_callback=None,
-                 interrupt_check=lambda: False
-                 ):
+                 detected_callback=None
+                ):
                  
         super(HotwordDetector, self).__init__()
         sl = SettingLoader()
         self.settings = sl.settings
-        self.kill_received = False
         self.paused_loop = False
         self.detected_callback = detected_callback
-        self.interrupt_check = interrupt_check
         self.sensitivity = sensitivity
         trigger_level = 3
         self.keyword = keyword
@@ -78,25 +74,20 @@ class HotwordDetector(Thread):
 
     def run(self):
         logger.debug("detecting...")
-        
-        while not self.kill_received:
+        while True:
             if not self.paused_loop:
-                if self.interrupt_check():
-                    logger.debug("detect voice break")
-                    break
-                
                 data = self.stream.read()
                 if len(data) > 0:
                     self.stream.write(data)
 
                 if self.found_keyword:
-                    self.pause()                          # We start pausing it here, to avoid double activations    
+                    self.pause()                          # We start pausing it here, to avoid double activations
                     message = "[Precise] Keyword detected"
                     Utils.print_info(message)
                     logger.debug(message)
                     self.detected_callback()
 
-            time.sleep(0.1)
+            time.sleep(0.01)
         logger.debug("finished")
 
 
@@ -111,7 +102,7 @@ class HotwordDetector(Thread):
         self.runner.play()
         self.paused_loop = False
         self.found_keyword = False
-
+    
     def downloadPreciseEngine(self):
         import json
         import requests
