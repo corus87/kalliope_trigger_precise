@@ -6,10 +6,14 @@ import pyaudio
 import sys
 
 from threading import Thread
-from contextlib import contextmanager
-from ctypes import *
+
 from kalliope import Utils
+from kalliope.core.HookManager import HookManager
+from kalliope.stt.Utils import SpeechRecorder
+from kalliope.core.ConfigurationManager import SettingLoader
+
 from precise_runner import PreciseRunner, ReadWriteStream, PreciseEngine
+
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -19,23 +23,8 @@ logger = logging.getLogger("kalliope")
 TOP_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCE_FILE = os.path.join(TOP_DIR, "precise-engine/precise-engine")
 
-
-def py_error_handler(filename, line, function, err, fmt):
+class PreciseEngineNotFound(Exception):
     pass
-
-ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
-c_error_handler = ERROR_HANDLER_FUNC(py_error_handler)
-
-@contextmanager
-def no_alsa_error():
-    try:
-        asound = cdll.LoadLibrary('libasound.so')
-        asound.snd_lib_error_set_handler(c_error_handler)
-        yield
-        asound.snd_lib_error_set_handler(None)
-    except:
-        yield
-        pass
 
 class HotwordDetector(Thread):
     """
@@ -56,41 +45,43 @@ class HotwordDetector(Thread):
                  ):
                  
         super(HotwordDetector, self).__init__()
+        sl = SettingLoader()
+        self.settings = sl.settings
         self.kill_received = False
-        self.paused = False
+        self.paused_loop = False
         self.detected_callback = detected_callback
         self.interrupt_check = interrupt_check
         self.sensitivity = sensitivity
         trigger_level = 3
         self.keyword = keyword
-
         self.found_keyword = False
+
+        if not os.path.exists(RESOURCE_FILE):
+            if self.downloadPreciseEngine():
+                Utils.print_info("[Precise] Download complete")
+            else:
+                raise PreciseEngineNotFound("Error downloading precise engine, check your internet connection or try again later.")
 
         engine = PreciseEngine(RESOURCE_FILE, self.keyword)
 
-        with no_alsa_error():
-            self.audio = pyaudio.PyAudio()
-
-        self.stream_in = self.audio.open(
-            input=True, output=False,
-            format=self.audio.get_format_from_width(2),
-            channels=1,
-            rate=16000,
-            frames_per_buffer=1024)
-
         self.stream = ReadWriteStream()
         self.runner = PreciseRunner(engine,
-                                    stream=self.stream_in,
                                     sensitivity=float(self.sensitivity),
                                     trigger_level=trigger_level,
                                     on_activation=self.activation
                                     )
+        
+        self.runner.start()
+        self.pause()                                    # To avoid that precise starts detecting without beeing ready, we pause it right after start
+        if self.settings.machine.startswith("arm"):     # Because importing tensorflow takes up to 10 seconds, we sleep a while
+            Utils.print_info("Starting precise trigger")
+            time.sleep(10)
 
     def run(self):
         logger.debug("detecting...")
-        self.runner.start()
+        
         while not self.kill_received:
-            if not self.paused:
+            if not self.paused_loop:
                 if self.interrupt_check():
                     logger.debug("detect voice break")
                     break
@@ -100,24 +91,57 @@ class HotwordDetector(Thread):
                     self.stream.write(data)
 
                 if self.found_keyword:
-                    self.runner.stop()
-                    message = "Keyword detected"
+                    self.pause()                          # We start pausing it here, to avoid double activations    
+                    message = "[Precise] Keyword detected"
                     Utils.print_info(message)
                     logger.debug(message)
+                    SR = SpeechRecorder()                 # We start the SpeechRecorder here to start recording as soon as possible
+                    SR.start()
                     self.detected_callback()
 
             time.sleep(0.1)
+        logger.debug("finished")
 
-        logger.debug("finished.")
 
     def activation(self):
         self.found_keyword = True
 
-    def terminate(self):
-        """
-        Terminate audio stream. Users cannot call start() again to detect.
-        :return: None
-        """
-        self.stream_in.stop_stream()
-        self.stream_in.close()
-        self.audio.terminate()
+    def pause(self):
+        self.runner.pause()
+        self.paused_loop = True
+
+    def unpause(self):
+        self.runner.play()
+        self.paused_loop = False
+        self.found_keyword = False
+
+    def downloadPreciseEngine(self):
+        import json
+        import requests
+        import tarfile
+
+        Utils.print_info("[Preicse] Precise engine not present, starting download now")
+        url = "https://api.github.com/repos/MycroftAI/mycroft-precise/releases/latest"
+        response = requests.get(url)
+        if response.status_code == 200:
+            download_url = None
+            arch = self.settings.machine
+            for asset in response.json()["assets"]:
+                if arch in asset.get("name"):
+                    if asset.get("name").startswith("precise-engine") and asset.get("name").endswith(".tar.gz"):
+                        download_name = asset.get("name")
+                        download_url = asset.get('browser_download_url')
+
+            filepath = os.path.join(TOP_DIR, download_name)
+            if download_url:
+                Utils.print_info("[Precise] Downloading %s this can take a moment" % download_name)
+                file = requests.get(download_url)
+                if file.status_code == 200:
+                    with open(filepath, 'wb') as f:
+                        f.write(file.content)
+
+                    with tarfile.open(filepath) as tar:
+                        tar.extractall(path=TOP_DIR)
+                    os.remove(filepath)
+                    return True
+        return False
