@@ -6,6 +6,9 @@ Trigger for Kalliope
 kalliope install --git-url https://github.com/corus87/kalliope_trigger_precise.git
 ```
 To use precise you need to install precise-engine. 
+It will try to download the engine by itself.
+For manual installation:
+
 [Here](https://github.com/MycroftAI/mycroft-precise/releases) you can find the binary data for your platform. 
 
 For installation on the raspberry follow these instructions:
