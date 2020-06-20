@@ -49,16 +49,7 @@ class Precise(Thread):
         
         self.detector = HotwordDetector(keyword=self.pb_file,
                                         sensitivity=self.sensitivity,
-                                        detected_callback=self.callback,
-                                        interrupt_check=self.interrupt_callback)
-
-
-    def interrupt_callback(self):
-        """
-        This function will be passed to precise to stop the main thread
-        :return:
-        """
-        return self.interrupted
+                                        detected_callback=self.callback)
 
 
     def run(self):
@@ -71,28 +62,19 @@ class Precise(Thread):
         self.detector.start()
         self.detector.join()
 
-    def stop(self):
-        """
-        Kill the precise process
-        :return: 
-        """
-        logger.debug("Killing precise process")
-        self.interrupted = True
-        self.detector.terminate()
-    
     def pause(self):
         """
         pause the precise main thread
         """
         logger.debug("Pausing precise process")
-        self.detector.paused = True
+        self.detector.pause()
 
     def unpause(self):
         """
         unpause the precise main thread
         """
         logger.debug("Unpausing precise process")
-        self.detector.paused = False
+        self.detector.unpause()
 
     @staticmethod
     def _ignore_stderr():
